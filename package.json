@@ -1,0 +1,15 @@
+{
+  "name": "warp-tsgo-bridge",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test"
+  },
+  "bin": {
+    "warp-tsgo-bridge": "./bin/warp-tsgo-bridge.mjs"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
