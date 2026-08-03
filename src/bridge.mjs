@@ -15,7 +15,14 @@ const typescriptRoot = join(
 );
 const tscPath = join(typescriptRoot, "bin", "tsc");
 const decoder = new MessageDecoder();
+const serverDecoder = new MessageDecoder();
 let server;
+
+const handledClientRequests = new Set([
+  "client/registerCapability",
+  "client/unregisterCapability",
+  "window/workDoneProgress/create",
+]);
 
 function workspaceDirectory(workspaceUri) {
   if (!workspaceUri?.startsWith("file:")) return process.cwd();
@@ -37,7 +44,20 @@ function startServer(workspaceUri) {
     env: process.env,
     stdio: ["pipe", "pipe", "pipe"],
   });
-  server.stdout.pipe(process.stdout);
+  server.stdout.on("data", (chunk) => {
+    try {
+      for (const message of serverDecoder.push(chunk)) {
+        if (handledClientRequests.has(message.method) && message.id != null) {
+          server.stdin.write(encodeMessage({ jsonrpc: "2.0", id: message.id, result: null }));
+        } else {
+          process.stdout.write(encodeMessage(message));
+        }
+      }
+    } catch (error) {
+      process.stderr.write(`[warp-tsgo-bridge] ${error.stack ?? error.message}\n`);
+      process.exit(1);
+    }
+  });
   server.stderr.pipe(process.stderr);
   server.on("error", (error) => {
     process.stderr.write(`[warp-tsgo-bridge] ${error.message}\n`);
